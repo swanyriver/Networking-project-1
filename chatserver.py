@@ -125,10 +125,10 @@ if __name__ == "__main__":
     #### SocketServer has been instantiated properly
 
     # Activate the server; this will keep running until keyboard interupt or SIGINT
-    print "BEFORE SERVER FOREVER"
+    print "Launching server that will accept consecutive but not concurrent connections"
     server.serve_forever()
     #this code is never reached
-    print "AFTER SERVER FOREVER"
+    print "Server has exited"
 
 
 # import socket;
