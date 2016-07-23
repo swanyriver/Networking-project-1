@@ -1,25 +1,31 @@
 import socket
 import sys
 import SocketServer
+import select
 
+REC_BUFFER = 512
 
 class MyTCPHandler(SocketServer.BaseRequestHandler):
-    """
-    The RequestHandler class for our server.
-
-    It is instantiated once per connection to the server, and must
-    override the handle() method to implement communication to the
-    client.
-    """
 
     def handle(self):
         # self.request is the TCP socket connected to the client
+        for kv in self.__dict__.items():
+            print kv
+        print dir(self)
+        print type(self)
+        print dir(self.request)
+        print self.__doc__
         while True:
-            self.data = self.request.recv(1024).strip()
-            print "{} wrote:".format(self.client_address[0])
-            print self.data
+            data = self.request.recv(REC_BUFFER)
+            if len(data) == 0:
+                #other end has "hung up"
+                print "%s has disconnected"%(str(self.client_address))
+                return
+            data = data.strip()
+
+            print "%r>%s"%(self.client_address, data)
             # just send back the same data, but upper-cased
-            self.request.sendall(self.data.upper())
+            self.request.sendall(data.upper())
 
 
 def serverStartupMessage(portNum, hostName):
@@ -62,10 +68,10 @@ if __name__ == "__main__":
     server = SocketServer.TCPServer(("localhost", portNum), MyTCPHandler)
     print "TCP Server Instantiated ", server.server_address
 
-    # Activate the server; this will keep running until you
-    # interrupt the program with Ctrl-C
+    # Activate the server; this will keep running until keyboard interupt or SIGINT
     print "BEFORE SERVER FOREVER"
     server.serve_forever()
+    #this code is never reached
     print "AFTER SERVER FOREVER"
 
 
