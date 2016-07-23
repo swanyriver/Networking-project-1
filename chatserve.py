@@ -103,6 +103,7 @@ if __name__ == "__main__":
                 server = SocketServer.TCPServer(("localhost", portNum), ChatTCPHandler)
             else:
                 server = SocketServer.TCPServer((hostName, portNum), ChatTCPHandler)
+#                server = SocketServer.TCPServer((ipAddress, portNum), ChatTCPHandler)
         except socket.error as e:
             if e.errno == 98:
                 print "Port # %d is unavailable currently"%portNum,
@@ -114,6 +115,7 @@ if __name__ == "__main__":
                     exit()
 
             else:
+                #errno 11 = priviled port
                 print "(SERVER-TERMINATED) due to failure to instantiate SocketServer object: <%s>"%str(e)
                 exit()
 
