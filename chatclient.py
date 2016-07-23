@@ -18,7 +18,8 @@ def main(argv):
     # create socket and connect to server specified in command line
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((TCP_IP, TCP_PORT))
-    s.settimeout(.2)
+    print "peerName:", s.getpeername()
+    #s.settimeout(.2)
 
     userHandle="player1"
     #TODO determine if verticalClient or horizontalClient
