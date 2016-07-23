@@ -1,7 +1,9 @@
 import socket
 import sys
 import SocketServer
-import select
+from collections import namedtuple
+
+NetworkInfo = namedtuple("networkInfo", ['portNum', 'hostName', 'ipAddress'])
 
 REC_BUFFER = 512
 
@@ -23,43 +25,9 @@ class ChatTCPHandler(SocketServer.BaseRequestHandler):
 
 MIN_PORT = 0
 MAX_PORT = 65536
-HOME = "127.0.0.1"
 
 
-# def InitializeParamaters():
-#     portNum = None
-#     hostName = None
-#     ipAddress = None
-#     if len(sys.argv) < 2:
-#         print "(SERVER-TERMINATED) server must be launched with port number as first argument"
-#         exit()
-#     try:
-#         portNum = int(sys.argv[1])
-#         if not portNum or not MIN_PORT <= portNum <= MAX_PORT:
-#             raise ValueError("Port number out of range")
-#     except ValueError as error:
-#         print "(SERVER-TERMINATED) port number argument must be an integer between 0 to 65536 <%s>" % error
-#         exit()
-#     try:
-#         hostName = socket.gethostname()
-#         if not hostName:
-#             raise RuntimeError
-#     except RuntimeError:
-#         print "(SERVER-TERMINATED) Unable to get host-name"
-#         exit()
-#     try:
-#         ipAddress = socket.gethostbyname(hostName)
-#         if not ipAddress:
-#             raise RuntimeError
-#     except RuntimeError:
-#         print "(SERVER-TERMINATED) Unable to get host ip address"
-#         exit()
-#
-#     return portNum, hostName, ipAddress
-
-
-if __name__ == "__main__":
-
+def InitializeParamaters(argv):
     portNum = None
     hostName = None
     ipAddress = None
@@ -67,7 +35,7 @@ if __name__ == "__main__":
         print "(SERVER-TERMINATED) server must be launched with port number as first argument"
         exit()
     try:
-        portNum = int(sys.argv[1])
+        portNum = int(argv[1])
         if not portNum or not MIN_PORT <= portNum <= MAX_PORT:
             raise ValueError("Port number out of range")
     except ValueError as error:
@@ -87,18 +55,17 @@ if __name__ == "__main__":
     except RuntimeError:
         print "(SERVER-TERMINATED) Unable to get host ip address"
         exit()
-    print "Server script started with hostname:%s ip-addr:%s port#:%d"%(hostName, ipAddress,  portNum)
+
+    return NetworkInfo(portNum=portNum, hostName=hostName, ipAddress=ipAddress)
 
 
-    #### invariant:
-    #### server script launched with valid command line arguments
-
-
+def createServer(portNum, hostName, ipAddress):
     # Attempt to instantiate a server instance,  recover from occupied port error and offer use an alternative port
     server = None
     while not server:
         try:
-            if ipAddress == HOME:
+            if ipAddress.split('.')[0] == "127":
+                print "launcing home network version"
                 # required for local Ubuntu machine testing
                 server = SocketServer.TCPServer(("localhost", portNum), ChatTCPHandler)
             else:
@@ -119,6 +86,19 @@ if __name__ == "__main__":
                 print "(SERVER-TERMINATED) due to failure to instantiate SocketServer object: <%s>"%str(e)
                 exit()
 
+    return server
+
+
+def main(argv):
+
+    initInfo = InitializeParamaters(argv)
+    print "Server script started with hostname:%s ip-addr:%s port#:%d" % (initInfo.hostName,
+                                                                          initInfo.ipAddress,
+                                                                          initInfo.portNum)
+    #### invariant:
+    #### server script launched with valid command line arguments
+
+    server = createServer(*initInfo)
     print "TCP Server Instantiated ", server.server_address
 
     #### invariant:
@@ -127,52 +107,15 @@ if __name__ == "__main__":
     # Activate the server; this will keep running until keyboard interupt or SIGINT
     print "Launching server that will accept consecutive but not concurrent connections"
     server.serve_forever()
-    #this code is never reached
+    # this code is never reached
     print "Server has exited"
 
-
-# import socket;
-# sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# result = sock.connect_ex(('127.0.0.1',80))
-# if result == 0:
-#    print "Port is open"
-# else:
-#    print "Port is not open"
-#
-    ###############################################3
-# import socket
-# from contextlib import closing
-#
-# def check_socket(host, port):
-#     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
-#         if sock.connect_ex((host, port)) == 0:
-#             print "Port is open"
-#         else:
-#             print "Port is not open"
+if __name__ == "__main__":
+    main(sys.argv)
 
 
-# class ThreadedTCPStreamServer(SocketServer.ThreadingMixin, SocketServer.TCPServer):
-#     def __init__(self, server_address, RequestHandlerClass, bind_and_activate=True,
-#                  queue=None):
-#         self.queue = queue
-#         SocketServer.TCPServer.__init__(self, server_address, RequestHandlerClass,
-#                                         bind_and_activate=bind_and_activate)
-#
-# class ThreadedTCPStreamHandler(SocketServer.StreamRequestHandler):
-#     def __init__(self, request, client_address, server):
-#         self.queue = server.queue
-#         StreamRequestHandler.__init__(self, request, client_address, server)
-#
-#     def handle(self):
-#         while True:
-#             self.data = self.rfile.readline().strip()
-#             if not self.data:
-#                 break
-#             cur_thread = threading.current_thread()
-#             command = self.data[0:2]
-#             if command == "nr":
-#                 info = self.data[2:]
-#                 t1 = info.split("|")
-#                 title = t1[0]
-#                 self.queue.put(info)
-#                 self.finish()
+
+
+
+
+
