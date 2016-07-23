@@ -8,13 +8,6 @@ REC_BUFFER = 512
 class ChatTCPHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
-        # self.request is the TCP socket connected to the client
-        for kv in self.__dict__.items():
-            print kv
-        print dir(self)
-        print type(self)
-        print dir(self.request)
-        print self.__doc__
         while True:
             data = self.request.recv(REC_BUFFER)
             if len(data) == 0:
@@ -28,31 +21,58 @@ class ChatTCPHandler(SocketServer.BaseRequestHandler):
             self.request.sendall(data.upper())
 
 
-def serverStartupMessage(portNum, hostName):
-    return "Server script started with hostname:%s port#:%d"%(hostName, portNum)
-
-
-
 MIN_PORT = 0
 MAX_PORT = 65536
+HOME = "127.0.0.1"
+
+
+# def InitializeParamaters():
+#     portNum = None
+#     hostName = None
+#     ipAddress = None
+#     if len(sys.argv) < 2:
+#         print "(SERVER-TERMINATED) server must be launched with port number as first argument"
+#         exit()
+#     try:
+#         portNum = int(sys.argv[1])
+#         if not portNum or not MIN_PORT <= portNum <= MAX_PORT:
+#             raise ValueError("Port number out of range")
+#     except ValueError as error:
+#         print "(SERVER-TERMINATED) port number argument must be an integer between 0 to 65536 <%s>" % error
+#         exit()
+#     try:
+#         hostName = socket.gethostname()
+#         if not hostName:
+#             raise RuntimeError
+#     except RuntimeError:
+#         print "(SERVER-TERMINATED) Unable to get host-name"
+#         exit()
+#     try:
+#         ipAddress = socket.gethostbyname(hostName)
+#         if not ipAddress:
+#             raise RuntimeError
+#     except RuntimeError:
+#         print "(SERVER-TERMINATED) Unable to get host ip address"
+#         exit()
+#
+#     return portNum, hostName, ipAddress
+
 
 if __name__ == "__main__":
 
     portNum = None
     hostName = None
-
+    ipAddress = None
     if len(sys.argv) < 2:
         print "(SERVER-TERMINATED) server must be launched with port number as first argument"
         exit()
-
     try:
         portNum = int(sys.argv[1])
         if not portNum or not MIN_PORT <= portNum <= MAX_PORT:
             raise ValueError("Port number out of range")
     except ValueError as error:
-        print "(SERVER-TERMINATED) port number argument must be an integer between 0 to 65536 <%s>"%error
+        print "(SERVER-TERMINATED) port number argument must be an integer between 0 to 65536 <%s>" % error
         exit()
-
     try:
         hostName = socket.gethostname()
         if not hostName:
@@ -60,17 +80,29 @@ if __name__ == "__main__":
     except RuntimeError:
         print "(SERVER-TERMINATED) Unable to get host-name"
         exit()
+    try:
+        ipAddress = socket.gethostbyname(hostName)
+        if not ipAddress:
+            raise RuntimeError
+    except RuntimeError:
+        print "(SERVER-TERMINATED) Unable to get host ip address"
+        exit()
+    print "Server script started with hostname:%s ip-addr:%s port#:%d"%(hostName, ipAddress,  portNum)
 
-    print serverStartupMessage(portNum, hostName)
 
     #### invariant:
-    #### server launched with valid command line arguments
+    #### server script launched with valid command line arguments
 
-    #server = SocketServer.TCPServer((hostName, portNum), MyTCPHandler)
+
+    # Attempt to instantiate a server instance,  recover from occupied port error and offer use an alternative port
     server = None
     while not server:
         try:
-            server = SocketServer.TCPServer(("localhost", portNum), ChatTCPHandler)
+            if ipAddress == HOME:
+                # required for local Ubuntu machine testing
+                server = SocketServer.TCPServer(("localhost", portNum), ChatTCPHandler)
+            else:
+                server = SocketServer.TCPServer((hostName, portNum), ChatTCPHandler)
         except socket.error as e:
             if e.errno == 98:
                 print "Port # %d is unavailable currently"%portNum,
@@ -85,8 +117,10 @@ if __name__ == "__main__":
                 print "(SERVER-TERMINATED) due to failure to instantiate SocketServer object: <%s>"%str(e)
                 exit()
 
-
     print "TCP Server Instantiated ", server.server_address
+
+    #### invariant:
+    #### SocketServer has been instantiated properly
 
     # Activate the server; this will keep running until keyboard interupt or SIGINT
     print "BEFORE SERVER FOREVER"
