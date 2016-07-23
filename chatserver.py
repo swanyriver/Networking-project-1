@@ -7,10 +7,12 @@ NetworkInfo = namedtuple("networkInfo", ['portNum', 'hostName', 'ipAddress'])
 
 ## Constants
 REC_BUFFER = 512
+MSG_LIMIT = 500
 MIN_PORT = 0
 PRIVILEGED = 1024
 MAX_PORT = 65536
 CONNECTION_QUE_SIZE = 10
+HANDLE = "SERVER"
 
 #
 # class ChatTCPHandler(SocketServer.BaseRequestHandler):
@@ -120,6 +122,32 @@ def getListeningSocket(portNum, hostName, ipAddress):
     serverSocket.listen(CONNECTION_QUE_SIZE)
     return serverSocket
 
+def getInput():
+    inpt = raw_input("%s>"%HANDLE)
+    inpt = inpt.strip()
+    if len(inpt) > MSG_LIMIT:
+        inpt = inpt[:MSG_LIMIT]
+        print " <MESSAGE TRUNCATED TO %d CHARS>"%MSG_LIMIT
+    return inpt
+
+def chatWithClient(clientSocket):
+    while True:
+        msgFromClient = clientSocket.recv(REC_BUFFER)
+        if len(msgFromClient) == 0:
+            # other end has "hung up"
+            print "%s has disconnected" % (str(clientSocket.getpeername()))
+            break
+        msgFromClient = msgFromClient.strip()
+
+        #with socket info
+        #print "%r>%s" % (clientSocket.getpeername(), msgFromClient)
+
+        print msgFromClient
+
+        # prompt server for chat message
+        msgToClient = getInput()
+        clientSocket.sendall("%s>%s"%(HANDLE,msgToClient))
+
 def main(argv):
 
     initInfo = InitializeParamaters(argv)
@@ -139,24 +167,13 @@ def main(argv):
     #### server socket has bound to an open port and is listening for connections
 
     #todo modularize this
-    #tod fork procecess for chatting and display with que
+    #tod fork procecess for chatting and display with queue
+    #accept consective connections
     while True:
-        # accept connections from outside
         (clientSocket, address) = serverSocket.accept()
+        print "connected to:", address
 
-        print "connected to:", clientSocket, address
-
-        while True:
-            data = clientSocket.recv(REC_BUFFER)
-            if len(data) == 0:
-                # other end has "hung up"
-                print "%s has disconnected" % (str(clientSocket.getpeername()))
-                break
-            data = data.strip()
-
-            print "%r>%s" % (clientSocket.getpeername(), data)
-            # just send back the same data, but upper-cased
-            clientSocket.sendall(data.upper())
+        chatWithClient(clientSocket)
 
 
 if __name__ == "__main__":
