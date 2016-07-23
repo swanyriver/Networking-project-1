@@ -8,7 +8,9 @@ NetworkInfo = namedtuple("networkInfo", ['portNum', 'hostName', 'ipAddress'])
 ## Constants
 REC_BUFFER = 512
 MIN_PORT = 0
+PRIVILEGED = 1024
 MAX_PORT = 65536
+CONNECTION_QUE_SIZE = 10
 
 #
 # class ChatTCPHandler(SocketServer.BaseRequestHandler):
@@ -91,8 +93,32 @@ def InitializeParamaters(argv):
 #
 #     return server
 
-#def listenOnSocket(portNum, hostName, ipAddress):
+def nextPort(portNum):
+    portNum += 1
+    return portNum if PRIVILEGED < portNum <= MAX_PORT else PRIVILEGED
 
+def getListeningSocket(portNum, hostName, ipAddress):
+    serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # todo port avail and permission check (can be coppied from above pretty easily)
+    while True:
+        try:
+            serverSocket.bind((hostName, portNum))
+            # binding to port was successful exit loop
+            break
+        except socket.error as e:
+            # for convinince of testing on flip server with congestion ports, advance consecutively
+            if e.errno == 98 or e.errno == 13:
+                candidate = nextPort(portNum)
+                print "Port # %d is %s"%(portNum, ("unavailable" if e.errno == 98 else "privileged")),
+                response = raw_input("would you like to try %d? (y/n)"%candidate)
+                if response.lower() == "y" or response.lower == "yes":
+                    portNum = candidate
+                else:
+                    print "(SERVER-TERMINATED) due to port unavailability"
+                    exit()
+
+    serverSocket.listen(CONNECTION_QUE_SIZE)
+    return serverSocket
 
 def main(argv):
 
@@ -100,22 +126,20 @@ def main(argv):
     print "Server script started with hostname:%s ip-addr:%s port#:%d" % (initInfo.hostName,
                                                                           initInfo.ipAddress,
                                                                           initInfo.portNum)
-    print "To connect on remote host run either:"
-    print "python chatclient.py %s %d"%(initInfo.ipAddress, initInfo.portNum)
-    print "python chatclient.py %s %d"%(initInfo.hostName, initInfo.portNum)
-
     #### invariant:
     #### server script launched with valid command line arguments
 
-    # todo modularize this code
-    #serverSocket = listenOnSocket(*initInfo)
+    serverSocket = getListeningSocket(*initInfo)
+    serverIp, serverPort = serverSocket.getsockname()
+    print "Listening on port %d To connect on remote host run either:"%serverPort
+    print "python chatclient.py %s %d" % (initInfo.ipAddress, serverPort)
+    print "python chatclient.py %s %d" % (initInfo.hostName, serverPort)
 
-    serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    #todo port avail and permission check (can be coppied from above pretty easily)
-    serverSocket.bind((initInfo.hostName, initInfo.portNum))
-    #serverSocket.bind((initInfo.ipAddress, initInfo.portNum))
-    serverSocket.listen(10)
+    #### invariant:
+    #### server socket has bound to an open port and is listening for connections
 
+    #todo modularize this
+    #tod fork procecess for chatting and display with que
     while True:
         # accept connections from outside
         (clientSocket, address) = serverSocket.accept()
@@ -134,24 +158,6 @@ def main(argv):
             # just send back the same data, but upper-cased
             clientSocket.sendall(data.upper())
 
-
-    #######################################
-    ## abandon ???? #######################
-    #######################################
-    # server = createServer(*initInfo)
-    # print "TCP Server Instantiated ", server.server_address
-    #
-    # #### invariant:
-    # #### SocketServer has been instantiated properly
-    #
-    # # Activate the server; this will keep running until keyboard interupt or SIGINT
-    # print "Launching server that will accept consecutive but not concurrent connections"
-    # server.serve_forever()
-    # # this code is never reached
-    # print "Server has exited"
-    ######################################
-    ######################################
-    ######################################
 
 if __name__ == "__main__":
     main(sys.argv)
