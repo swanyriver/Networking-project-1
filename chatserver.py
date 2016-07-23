@@ -7,6 +7,7 @@ NetworkInfo = namedtuple("networkInfo", ['portNum', 'hostName', 'ipAddress'])
 
 REC_BUFFER = 512
 
+
 class ChatTCPHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
@@ -65,7 +66,7 @@ def createServer(portNum, hostName, ipAddress):
     while not server:
         try:
             if ipAddress.split('.')[0] == "127":
-                print "launcing home network version"
+                print "launching home network version"
                 # required for local Ubuntu machine testing
                 server = SocketServer.TCPServer(("localhost", portNum), ChatTCPHandler)
             else:
@@ -88,6 +89,8 @@ def createServer(portNum, hostName, ipAddress):
 
     return server
 
+#def listenOnSocket(portNum, hostName, ipAddress):
+
 
 def main(argv):
 
@@ -98,17 +101,42 @@ def main(argv):
     #### invariant:
     #### server script launched with valid command line arguments
 
-    server = createServer(*initInfo)
-    print "TCP Server Instantiated ", server.server_address
+    # todo modularize this code
+    #serverSocket = listenOnSocket(*initInfo)
 
-    #### invariant:
-    #### SocketServer has been instantiated properly
+    serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #todo use proper ip
+    serverSocket.bind("localhost", initInfo.portNum)
+    serverSocket.listen()
 
-    # Activate the server; this will keep running until keyboard interupt or SIGINT
-    print "Launching server that will accept consecutive but not concurrent connections"
-    server.serve_forever()
-    # this code is never reached
-    print "Server has exited"
+    while True:
+        # accept connections from outside
+        (clientSocket, address) = serverSocket.accept()
+
+        print "connected to:", clientSocket, address
+
+        clientSocket.sendall("hello")
+        clientSocket.close()
+
+
+
+    #######################################
+    ## abandon ???? #######################
+    #######################################
+    # server = createServer(*initInfo)
+    # print "TCP Server Instantiated ", server.server_address
+    #
+    # #### invariant:
+    # #### SocketServer has been instantiated properly
+    #
+    # # Activate the server; this will keep running until keyboard interupt or SIGINT
+    # print "Launching server that will accept consecutive but not concurrent connections"
+    # server.serve_forever()
+    # # this code is never reached
+    # print "Server has exited"
+    ######################################
+    ######################################
+    ######################################
 
 if __name__ == "__main__":
     main(sys.argv)
