@@ -106,8 +106,10 @@ def main(argv):
 
     serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     #todo use proper ip
-    serverSocket.bind("localhost", initInfo.portNum)
-    serverSocket.listen()
+    #serverSocket.bind(("localhost", initInfo.portNum))
+    serverSocket.bind((initInfo.hostName, initInfo.portNum))
+    #serverSocket.bind((initInfo.ipAddress, initInfo.portNum))
+    serverSocket.listen(10)
 
     while True:
         # accept connections from outside
