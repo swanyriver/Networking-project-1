@@ -5,7 +5,7 @@ import select
 
 REC_BUFFER = 512
 
-class MyTCPHandler(SocketServer.BaseRequestHandler):
+class ChatTCPHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
         # self.request is the TCP socket connected to the client
@@ -30,6 +30,8 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 
 def serverStartupMessage(portNum, hostName):
     return "Server script started with hostname:%s port#:%d"%(hostName, portNum)
+
+
 
 MIN_PORT = 0
 MAX_PORT = 65536
@@ -65,7 +67,25 @@ if __name__ == "__main__":
     #### server launched with valid command line arguments
 
     #server = SocketServer.TCPServer((hostName, portNum), MyTCPHandler)
-    server = SocketServer.TCPServer(("localhost", portNum), MyTCPHandler)
+    server = None
+    while not server:
+        try:
+            server = SocketServer.TCPServer(("localhost", portNum), ChatTCPHandler)
+        except socket.error as e:
+            if e.errno == 98:
+                print "Port # %d is unavailable currently"%portNum,
+                response = raw_input("would you like to try %d? (y/n)"%((portNum+1)%MAX_PORT))
+                if response.lower() == "y" or response.lower == "yes":
+                    portNum = (portNum + 1)%MAX_PORT
+                else:
+                    print "(SERVER-TERMINATED) due to port unavailability"
+                    exit()
+
+            else:
+                print "(SERVER-TERMINATED) due to failure to instantiate SocketServer object: <%s>"%str(e)
+                exit()
+
+
     print "TCP Server Instantiated ", server.server_address
 
     # Activate the server; this will keep running until keyboard interupt or SIGINT
