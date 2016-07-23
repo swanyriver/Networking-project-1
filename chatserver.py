@@ -100,6 +100,10 @@ def main(argv):
     print "Server script started with hostname:%s ip-addr:%s port#:%d" % (initInfo.hostName,
                                                                           initInfo.ipAddress,
                                                                           initInfo.portNum)
+    print "To connect on remote host run either:"
+    print "python chatclient.py %s %d"%(initInfo.ipAddress, initInfo.portNum)
+    print "python chatclient.py %s %d"%(initInfo.hostName, initInfo.portNum)
+
     #### invariant:
     #### server script launched with valid command line arguments
 
