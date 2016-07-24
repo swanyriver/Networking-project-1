@@ -1,6 +1,5 @@
 import socket
 import sys
-import SocketServer
 from collections import namedtuple
 
 NetworkInfo = namedtuple("networkInfo", ['portNum', 'hostName', 'ipAddress'])
@@ -13,25 +12,7 @@ PRIVILEGED = 1024
 MAX_PORT = 65536
 CONNECTION_QUE_SIZE = 10
 HANDLE = "SERVER"
-
-#
-# class ChatTCPHandler(SocketServer.BaseRequestHandler):
-#
-#     def handle(self):
-#         while True:
-#             data = self.request.recv(REC_BUFFER)
-#             if len(data) == 0:
-#                 #other end has "hung up"
-#                 print "%s has disconnected"%(str(self.client_address))
-#                 return
-#             data = data.strip()
-#
-#             print "%r>%s"%(self.client_address, data)
-#             # just send back the same data, but upper-cased
-#             self.request.sendall(data.upper())
-#
-#
-
+QUIT = "\\quit"
 
 
 def InitializeParamaters(argv):
@@ -66,35 +47,6 @@ def InitializeParamaters(argv):
     return NetworkInfo(portNum=portNum, hostName=hostName, ipAddress=ipAddress)
 
 
-# def createServer(portNum, hostName, ipAddress):
-#     # Attempt to instantiate a server instance,  recover from occupied port error and offer use an alternative port
-#     server = None
-#     while not server:
-#         try:
-#             if ipAddress.split('.')[0] == "127":
-#                 print "launching home network version"
-#                 # required for local Ubuntu machine testing
-#                 server = SocketServer.TCPServer(("localhost", portNum), ChatTCPHandler)
-#             else:
-#                 server = SocketServer.TCPServer((hostName, portNum), ChatTCPHandler)
-# #                server = SocketServer.TCPServer((ipAddress, portNum), ChatTCPHandler)
-#         except socket.error as e:
-#             if e.errno == 98:
-#                 print "Port # %d is unavailable currently"%portNum,
-#                 response = raw_input("would you like to try %d? (y/n)"%((portNum+1)%MAX_PORT))
-#                 if response.lower() == "y" or response.lower == "yes":
-#                     portNum = (portNum + 1)%MAX_PORT
-#                 else:
-#                     print "(SERVER-TERMINATED) due to port unavailability"
-#                     exit()
-#
-#             else:
-#                 #errno 11 = priviled port
-#                 print "(SERVER-TERMINATED) due to failure to instantiate SocketServer object: <%s>"%str(e)
-#                 exit()
-#
-#     return server
-
 def nextPort(portNum):
     portNum += 1
     return portNum if PRIVILEGED < portNum <= MAX_PORT else PRIVILEGED
@@ -108,7 +60,7 @@ def getListeningSocket(portNum, hostName, ipAddress):
             # binding to port was successful exit loop
             break
         except socket.error as e:
-            # for convinince of testing on flip server with congestion ports, advance consecutively
+            # for convenience of testing on flip server with congestion ports, advance consecutively
             if e.errno == 98 or e.errno == 13:
                 candidate = nextPort(portNum)
                 print "Port # %d is %s"%(portNum, ("unavailable" if e.errno == 98 else "privileged")),
@@ -154,10 +106,12 @@ def chatWithClient(clientSocket):
         #with socket info
         #print "%r>%s" % (clientSocket.getpeername(), msgFromClient)
 
-        print msgFromClient[:-1]
+        print msgFromClient[:-2]
 
         # prompt server for chat message
         msgToClient = getInput()
+        if msgToClient == QUIT:
+            return
         try:
             clientSocket.sendall("%s>%s"%(HANDLE,msgToClient))
         except socket.error as e:
@@ -186,8 +140,6 @@ def main(argv):
     #### invariant:
     #### server socket has bound to an open port and is listening for connections
 
-    #todo modularize this
-    #tod fork procecess for chatting and display with queue
     #accept consective connections
     while True:
         print "\n Awaiting client connections \n"

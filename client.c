@@ -1,27 +1,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <errno.h>
 #include <string.h>
 #include <netdb.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
+#include <sys/stat.h>
 
-#include <arpa/inet.h>
 
 
 const int REC_BUFFER_SIZE = 512;
 const int MSG_LIMIT = 500;
 const int HANDLE_LIMIT = 10;
-const int MIN_PORT = 0;
 const int PRIVILEGED = 1024;
 const int MAX_PORT = 65536;
 const int GET_ADDR_NO_ERROR = 0;
 const int CONNECT_ERROR = -1;
 const int EXPECTED_ARGS = 2;
 const char* QUIT = "\\quit";
-const int QUIT_REQUESTED = -1;
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
 
@@ -64,6 +58,14 @@ int getConnectedSocket(const char* remoteHostName, const char* remotePortSt){
     }
     // free up memory used by addr-struct-linked-list
     freeaddrinfo(servinfo);
+
+
+    // ensure that fd is a valid socket, and not a closed socket ln:57
+    struct stat statbuf;
+    fstat(s, &statbuf);
+    if (!S_ISSOCK(statbuf.st_mode)){
+        s = 0;
+    }
 
     return s;
 }
@@ -207,7 +209,7 @@ int main(int argc, char const *argv[])
     close(sock);
     free(handle);
 
-    // dprintf(3,"%s\n", "Disconnected from server");
+    printf("\n%s\n\n", "Disconnected from server");
 
     return 0;
 }
