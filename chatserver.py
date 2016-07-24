@@ -130,9 +130,14 @@ def getInput():
         print " <MESSAGE TRUNCATED TO %d CHARS>"%MSG_LIMIT
     return inpt
 
+
 def chatWithClient(clientSocket):
     while True:
-        msgFromClient = clientSocket.recv(REC_BUFFER)
+        try:
+            msgFromClient = clientSocket.recv(REC_BUFFER)
+        except socket.errno as e:
+            print "(SERVER-STATE) unable to recieve from client"
+            break
         if len(msgFromClient) == 0:
             # other end has "hung up"
             peername = None
@@ -156,7 +161,7 @@ def chatWithClient(clientSocket):
         try:
             clientSocket.sendall("%s>%s"%(HANDLE,msgToClient))
         except socket.error as e:
-            if e.errno == 107:
+            if e.errno == 107 or e.errno == 104:
                 print "(SERVER-STATE) Cannot send message, client has disconnected"
             else:
                 print "(SERVER STATE) Unable to send message, disconnecting from client"
@@ -177,8 +182,8 @@ def main(argv):
     print "Listening on port %d To connect on remote host run either:"%serverPort
     print "python chatclient.py %s %d" % (initInfo.ipAddress, serverPort)
     print "python chatclient.py %s %d" % (initInfo.hostName, serverPort)
-    print "./chatclient %s %d 3>&1" % (initInfo.ipAddress, serverPort)
-    print "./chatclient %s %d 3>&1" % (initInfo.hostName, serverPort)
+    print "./chatclient %s %d 3>pipe" % (initInfo.ipAddress, serverPort)
+    print "./chatclient %s %d 3>pipe" % (initInfo.hostName, serverPort)
 
     #### invariant:
     #### server socket has bound to an open port and is listening for connections
