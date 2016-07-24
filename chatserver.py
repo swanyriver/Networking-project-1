@@ -162,6 +162,8 @@ def main(argv):
     print "Listening on port %d To connect on remote host run either:"%serverPort
     print "python chatclient.py %s %d" % (initInfo.ipAddress, serverPort)
     print "python chatclient.py %s %d" % (initInfo.hostName, serverPort)
+    print "./chatclient %s %d" % (initInfo.ipAddress, serverPort)
+    print "./chatclient %s %d" % (initInfo.hostName, serverPort)
 
     #### invariant:
     #### server socket has bound to an open port and is listening for connections
