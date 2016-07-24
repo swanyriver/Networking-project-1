@@ -135,7 +135,14 @@ def chatWithClient(clientSocket):
         msgFromClient = clientSocket.recv(REC_BUFFER)
         if len(msgFromClient) == 0:
             # other end has "hung up"
-            print "%s has disconnected" % (str(clientSocket.getpeername()))
+            peername = None
+            try:
+                str(clientSocket.getpeername())
+            except socket.error:
+                pass
+            finally:
+                print peername if peername else "client", "has disconnected"
+
             break
         msgFromClient = msgFromClient.strip()
 
@@ -146,7 +153,15 @@ def chatWithClient(clientSocket):
 
         # prompt server for chat message
         msgToClient = getInput()
-        clientSocket.sendall("%s>%s"%(HANDLE,msgToClient))
+        try:
+            clientSocket.sendall("%s>%s"%(HANDLE,msgToClient))
+        except socket.error as e:
+            if e.errno == 107:
+                print "(SERVER-STATE) Cannot send message, client has disconnected"
+            else:
+                print "(SERVER STATE) Unable to send message, disconnecting from client"
+            clientSocket.close()
+            break
 
 def main(argv):
 
@@ -172,6 +187,7 @@ def main(argv):
     #tod fork procecess for chatting and display with queue
     #accept consective connections
     while True:
+        print "\n Awaiting client connections \n"
         (clientSocket, address) = serverSocket.accept()
         print "connected to:", address
 
