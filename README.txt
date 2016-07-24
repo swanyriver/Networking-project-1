@@ -27,6 +27,47 @@ Then connect to server program running by supplying hostname/ip-address and port
 ---- Example Execution ----
 ---------------------------
 
+$ ssh <username>@flip2.engr.oregonstate.edu
+$ cd BrandonSwansonCS372Project1
+$ python chatserver.py 9999
+Server script started with hostname:flip2.engr.oregonstate.edu ip-addr:128.193.54.182 port#:9999
+Listening on port 9999 To connect on remote host run either:
+./chatclient 128.193.54.182 9999
+./chatclient flip2.engr.oregonstate.edu 9999
+
+ Awaiting client connections
+
+connected to: ('128.193.54.168', 57073)
+brandon>hello server
+SERVER>why hello client
+brandon>how are you
+SERVER>im good im running in python and on flip2 how about you
+brandon>im on flip 1 running c
+SERVER>good
+client has disconnected
+
+ Awaiting client connections
+
+
+
+--------client--------
+$ ssh <username>@flip1.engr.oregonstate.edu
+$ cd BrandonSwansonCS372Project1
+$make
+gcc client.c -o chatclient -std=gnu99
+$ ./chatclient flip2.engr.oregonstate.edu 9999
+Client chat program launched preparing to connect to:
+Host:flip2.engr.oregonstate.edu, port:9999
+What would you like your chat handle to be>brandon
+brandon>hello server
+SERVER>why hello client
+brandon>how are you
+SERVER>im good im running in python and on flip2 how about you
+brandon>im on flip 1 running c
+SERVER>good
+brandon>\quit
+
+Disconnected from server
 
 
 
