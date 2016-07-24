@@ -154,7 +154,7 @@ def chatWithClient(clientSocket):
         #with socket info
         #print "%r>%s" % (clientSocket.getpeername(), msgFromClient)
 
-        print msgFromClient
+        print msgFromClient[:-1]
 
         # prompt server for chat message
         msgToClient = getInput()
@@ -180,10 +180,8 @@ def main(argv):
     serverSocket = getListeningSocket(*initInfo)
     serverIp, serverPort = serverSocket.getsockname()
     print "Listening on port %d To connect on remote host run either:"%serverPort
-    print "python chatclient.py %s %d" % (initInfo.ipAddress, serverPort)
-    print "python chatclient.py %s %d" % (initInfo.hostName, serverPort)
-    print "./chatclient %s %d 3>pipe" % (initInfo.ipAddress, serverPort)
-    print "./chatclient %s %d 3>pipe" % (initInfo.hostName, serverPort)
+    print "./chatclient %s %d" % (initInfo.ipAddress, serverPort)
+    print "./chatclient %s %d" % (initInfo.hostName, serverPort)
 
     #### invariant:
     #### server socket has bound to an open port and is listening for connections
