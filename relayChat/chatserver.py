@@ -1,6 +1,9 @@
 import socket
 import sys
 from collections import namedtuple
+from log import log
+from multiprocessing import Pipe, Process
+
 
 NetworkInfo = namedtuple("networkInfo", ['portNum', 'hostName', 'ipAddress'])
 
@@ -13,6 +16,8 @@ MAX_PORT = 65536
 CONNECTION_QUE_SIZE = 10
 HANDLE = "SERVER"
 QUIT = "\\quit"
+TIMEOUT = .1
+TIMEOUT = 1.5
 
 
 def InitializeParamaters(argv):
@@ -83,13 +88,62 @@ def getInput():
     return inpt
 
 
-def chatWithClient(clientSocket):
+# def chatWithClient(clientSocket):
+#     while True:
+#         try:
+#             msgFromClient = clientSocket.recv(REC_BUFFER)
+#         except socket.errno as e:
+#             print "(SERVER-STATE) unable to recieve from client"
+#             break
+#         if len(msgFromClient) == 0:
+#             # other end has "hung up"
+#             peername = None
+#             try:
+#                 str(clientSocket.getpeername())
+#             except socket.error:
+#                 pass
+#             finally:
+#                 print peername if peername else "client", "has disconnected"
+#
+#             break
+#         msgFromClient = msgFromClient.strip()
+#
+#         #with socket info
+#         #print "%r>%s" % (clientSocket.getpeername(), msgFromClient)
+#
+#         print msgFromClient[:-2]
+#
+#         # prompt server for chat message
+#         msgToClient = getInput()
+#         if msgToClient == QUIT:
+#             return
+#         try:
+#             clientSocket.sendall("%s>%s"%(HANDLE,msgToClient))
+#         except socket.error as e:
+#             if e.errno == 107 or e.errno == 104:
+#                 print "(SERVER-STATE) Cannot send message, client has disconnected"
+#             else:
+#                 print "(SERVER STATE) Unable to send message, disconnecting from client"
+#             clientSocket.close()
+#             break
+
+
+def relayToClient(clientSocket, pipeToServer):
+    """
+    :type clientSocket: socket.socket
+    :param pipeToServer:
+    :return:
+    """
+    clientSocket.settimeout(TIMEOUT)
     while True:
+        msgFromClient = None
         try:
             msgFromClient = clientSocket.recv(REC_BUFFER)
         except socket.errno as e:
-            print "(SERVER-STATE) unable to recieve from client"
+            log( "(PROCESS-STATE) unable to recieve from client\n" )
             break
+        except socket.timeout:
+            continue
         if len(msgFromClient) == 0:
             # other end has "hung up"
             peername = None
@@ -98,29 +152,31 @@ def chatWithClient(clientSocket):
             except socket.error:
                 pass
             finally:
-                print peername if peername else "client", "has disconnected"
+                log(peername if peername else "client" + "has disconnected\n")
 
             break
-        msgFromClient = msgFromClient.strip()
 
-        #with socket info
-        #print "%r>%s" % (clientSocket.getpeername(), msgFromClient)
-
-        print msgFromClient[:-2]
+        if msgFromClient:
+            msgFromClient = msgFromClient.strip()
+        if msgFromClient:
+            pipeToServer.send(msgFromClient)
 
         # prompt server for chat message
-        msgToClient = getInput()
-        if msgToClient == QUIT:
-            return
-        try:
-            clientSocket.sendall("%s>%s"%(HANDLE,msgToClient))
-        except socket.error as e:
-            if e.errno == 107 or e.errno == 104:
-                print "(SERVER-STATE) Cannot send message, client has disconnected"
-            else:
-                print "(SERVER STATE) Unable to send message, disconnecting from client"
-            clientSocket.close()
-            break
+        messagesToClient = []
+        while pipeToServer.poll():
+            messagesToClient.append(pipeToServer.recv())
+
+        for msg in messagesToClient:
+            try:
+                clientSocket.sendall("%%s\n"%msg)
+            except socket.error as e:
+                if e.errno == 107 or e.errno == 104:
+                    log( "(PROCESS-STATE) Cannot send message, client has disconnected\n")
+                else:
+                    log( "(PROCESS STATE) Unable to send message, disconnecting from client\n" )
+                clientSocket.close()
+                return
+
 
 def main(argv):
 
@@ -136,17 +192,55 @@ def main(argv):
     print "Listening on port %d To connect on remote host run either:"%serverPort
     print "./chatclient %s %d" % (initInfo.ipAddress, serverPort)
     print "./chatclient %s %d" % (initInfo.hostName, serverPort)
+    print "\n Awaiting client connections \n"
 
     #### invariant:
     #### server socket has bound to an open port and is listening for connections
 
-    #accept consective connections
-    while True:
-        print "\n Awaiting client connections \n"
-        (clientSocket, address) = serverSocket.accept()
-        print "connected to:", address
+    #accept concurrent connections
+    serverSocket.settimeout(TIMEOUT)
+    # {process: duplex-Pipe}
+    pool = {}
 
-        chatWithClient(clientSocket)
+    #will run until keyboard interrupt
+    while True:
+        try:
+            log("Listening on port: %d\n"%serverPort)
+            (clientSocket, address) = serverSocket.accept()
+            if clientSocket:
+                log("connected to:%s\n" % str(address))
+                myEnd, processEnd = Pipe(duplex=True)
+                chatConnection = Process(target=relayToClient, args=(clientSocket, processEnd))
+                chatConnection.start()
+                pool[chatConnection] = myEnd
+        except socket.timeout:
+            pass
+
+        pool = {k:v for k,v in pool.items() if k.is_alive()}
+
+        log("communing with process pool %s\n"%str(pool))
+
+        messages = []
+        for proc, pipe in pool.items():
+            if pipe.poll():
+                msg = pipe.recv()
+                if msg: messages.append(msg)
+
+        log("Checked for messages msgsFromClients:%s\n"%str(messages))
+
+        if not messages: continue
+        pool = {k:v for k,v in pool.items() if k.is_alive()}
+        for proc, pipe in pool.items():
+            for msg in messages:
+                log("sending {%s} to {%s}\n"%(msg, proc))
+                pipe.send(msg)
+
+        if poolsize > len(pool):
+            log("processes removed from pool,  living processes: %d\n"%len(pool))
+
+        log("end of server process loop \n")
+
+
 
 
 if __name__ == "__main__":
