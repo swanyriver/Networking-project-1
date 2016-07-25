@@ -16,8 +16,7 @@ MAX_PORT = 65536
 CONNECTION_QUE_SIZE = 10
 HANDLE = "SERVER"
 QUIT = "\\quit"
-TIMEOUT = .1
-TIMEOUT = 1.5
+TIMEOUT = .05
 
 
 def InitializeParamaters(argv):

@@ -1,4 +1,5 @@
 import sys
 def log(str):
-    sys.stderr.write(str)
-    sys.stderr.flush()
+    pass
+    # sys.stderr.write(str)
+    # sys.stderr.flush()
