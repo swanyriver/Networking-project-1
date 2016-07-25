@@ -69,7 +69,8 @@ def getListeningSocket(portNum, hostName, ipAddress):
             if e.errno == 98 or e.errno == 13:
                 candidate = nextPort(portNum)
                 print "Port # %d is %s"%(portNum, ("unavailable" if e.errno == 98 else "privileged")),
-                response = raw_input("would you like to try %d? (y/n)"%candidate)
+                print "would you like to try %d? (y/n)"%candidate,
+                response = raw_input()
                 if response.lower() == "y" or response.lower == "yes":
                     portNum = candidate
                 else:
