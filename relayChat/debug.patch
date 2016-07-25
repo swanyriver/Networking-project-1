@@ -1,7 +1,7 @@
-diff --git a/relayChat/log.py b/relayChat/log.py
+diff --git a/log.py b/log.py
 index 1aab436..a111e45 100644
---- a/relayChat/log.py
-+++ b/relayChat/log.py
+--- a/log.py
++++ b/log.py
 @@ -1,5 +1,4 @@
  import sys
  def log(str):
@@ -12,10 +12,10 @@ index 1aab436..a111e45 100644
 +    sys.stderr.write(str)
 +    sys.stderr.flush()
 \ No newline at end of file
-diff --git a/relayChat/relayserver.py b/relayChat/relayserver.py
+diff --git a/relayserver.py b/relayserver.py
 index 3a3009e..8626e2d 100644
---- a/relayChat/relayserver.py
-+++ b/relayChat/relayserver.py
+--- a/relayserver.py
++++ b/relayserver.py
 @@ -16,7 +16,8 @@ MAX_PORT = 65536
  CONNECTION_QUE_SIZE = 10
  HANDLE = "SERVER"
