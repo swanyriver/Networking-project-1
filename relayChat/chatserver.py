@@ -88,44 +88,6 @@ def getInput():
     return inpt
 
 
-# def chatWithClient(clientSocket):
-#     while True:
-#         try:
-#             msgFromClient = clientSocket.recv(REC_BUFFER)
-#         except socket.errno as e:
-#             print "(SERVER-STATE) unable to recieve from client"
-#             break
-#         if len(msgFromClient) == 0:
-#             # other end has "hung up"
-#             peername = None
-#             try:
-#                 str(clientSocket.getpeername())
-#             except socket.error:
-#                 pass
-#             finally:
-#                 print peername if peername else "client", "has disconnected"
-#
-#             break
-#         msgFromClient = msgFromClient.strip()
-#
-#         #with socket info
-#         #print "%r>%s" % (clientSocket.getpeername(), msgFromClient)
-#
-#         print msgFromClient[:-2]
-#
-#         # prompt server for chat message
-#         msgToClient = getInput()
-#         if msgToClient == QUIT:
-#             return
-#         try:
-#             clientSocket.sendall("%s>%s"%(HANDLE,msgToClient))
-#         except socket.error as e:
-#             if e.errno == 107 or e.errno == 104:
-#                 print "(SERVER-STATE) Cannot send message, client has disconnected"
-#             else:
-#                 print "(SERVER STATE) Unable to send message, disconnecting from client"
-#             clientSocket.close()
-#             break
 
 
 def relayToClient(clientSocket, pipeToServer):
@@ -163,12 +125,14 @@ def relayToClient(clientSocket, pipeToServer):
 
         # prompt server for chat message
         messagesToClient = []
-        while pipeToServer.poll():
+        while pipeToServer.poll(TIMEOUT):
             messagesToClient.append(pipeToServer.recv())
+
+        log("(PROCESS-STATE) messages to send to clients: %s"%str(messagesToClient))
 
         for msg in messagesToClient:
             try:
-                clientSocket.sendall("%%s\n"%msg)
+                clientSocket.sendall("%s\n"%msg)
             except socket.error as e:
                 if e.errno == 107 or e.errno == 104:
                     log( "(PROCESS-STATE) Cannot send message, client has disconnected\n")
@@ -234,9 +198,6 @@ def main(argv):
             for msg in messages:
                 log("sending {%s} to {%s}\n"%(msg, proc))
                 pipe.send(msg)
-
-        if poolsize > len(pool):
-            log("processes removed from pool,  living processes: %d\n"%len(pool))
 
         log("end of server process loop \n")
 
