@@ -161,8 +161,8 @@ def main(argv):
     serverSocket = getListeningSocket(*initInfo)
     serverIp, serverPort = serverSocket.getsockname()
     print "Listening on port %d To connect on remote host run either:"%serverPort
-    print "./chatclient %s %d" % (initInfo.ipAddress, serverPort)
-    print "./chatclient %s %d" % (initInfo.hostName, serverPort)
+    print ".././chatclient %s %d" % (initInfo.ipAddress, serverPort)
+    print ".././chatclient %s %d" % (initInfo.hostName, serverPort)
     print "python chatclient.py %s %d" % (initInfo.ipAddress, serverPort)
     print "python chatclient.py %s %d" % (initInfo.hostName, serverPort)
     print "\n Awaiting client connections \n"
