@@ -15,6 +15,9 @@ def getInput(user):
         inpt = inpt[:MSG_LIMIT-2] + "\n"
     return inpt.strip()
 
+def getHandle():
+    return raw_input("What would you like your handle to be>").strip()[:10]
+
 
 def client_main(TCP_IP, TCP_PORT):
     #print "HOST:%s PORT:%d"%(TCP_IP, TCP_PORT)
@@ -25,13 +28,15 @@ def client_main(TCP_IP, TCP_PORT):
     print "peerName:", s.getpeername()
     #s.settimeout(.2)
 
+    handle = getHandle()
+
 
     msg = ""
 
     while msg != QUIT:
 
-        msg = getInput("TEMPHANDLE")
-        s.sendall(msg)
+        msg = getInput(handle)
+        s.sendall("%s>%s"%(handle,msg))
 
         #get update from server
         serverResponse = s.recv(REC_BUFFER)

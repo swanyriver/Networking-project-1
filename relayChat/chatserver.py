@@ -93,11 +93,11 @@ def getInput():
 def relayToClient(clientSocket, pipeToServer):
     """
     :type clientSocket: socket.socket
-    :param pipeToServer:
-    :return:
     """
     clientSocket.settimeout(TIMEOUT)
     while True:
+        #log("(PROCESS STATE) checking socket again\n")
+
         msgFromClient = None
         try:
             msgFromClient = clientSocket.recv(REC_BUFFER)
@@ -105,8 +105,9 @@ def relayToClient(clientSocket, pipeToServer):
             log( "(PROCESS-STATE) unable to recieve from client\n" )
             break
         except socket.timeout:
-            continue
-        if len(msgFromClient) == 0:
+            pass
+
+        if msgFromClient and len(msgFromClient) == 0:
             # other end has "hung up"
             peername = None
             try:
@@ -120,19 +121,25 @@ def relayToClient(clientSocket, pipeToServer):
 
         if msgFromClient:
             msgFromClient = msgFromClient.strip()
+            msgFromClient = msgFromClient.replace('\n','')
         if msgFromClient:
             pipeToServer.send(msgFromClient)
 
         # prompt server for chat message
-        messagesToClient = []
-        while pipeToServer.poll(TIMEOUT):
-            messagesToClient.append(pipeToServer.recv())
+        messageToClient = None
+        if pipeToServer.poll(TIMEOUT):
+            messageToClient = pipeToServer.recv()
+            if not messageToClient: continue
+            messageToClient = messageToClient.strip()
+            messageToClient.replace('\n', '')
+            if not messageToClient: continue
 
-        log("(PROCESS-STATE) messages to send to clients: %s"%str(messagesToClient))
+            log("(PROCESS-STATE) message to send to clients: %s\n"%str(messageToClient))
 
-        for msg in messagesToClient:
             try:
-                clientSocket.sendall("%s\n"%msg)
+                clientSocket.sendall(messageToClient + '\n')
+            except socket.timeout:
+                log("(PROCESS STATE) send timedout\n")
             except socket.error as e:
                 if e.errno == 107 or e.errno == 104:
                     log( "(PROCESS-STATE) Cannot send message, client has disconnected\n")
@@ -140,7 +147,6 @@ def relayToClient(clientSocket, pipeToServer):
                     log( "(PROCESS STATE) Unable to send message, disconnecting from client\n" )
                 clientSocket.close()
                 return
-
 
 def main(argv):
 
@@ -156,6 +162,8 @@ def main(argv):
     print "Listening on port %d To connect on remote host run either:"%serverPort
     print "./chatclient %s %d" % (initInfo.ipAddress, serverPort)
     print "./chatclient %s %d" % (initInfo.hostName, serverPort)
+    print "python chatclient.py %s %d" % (initInfo.ipAddress, serverPort)
+    print "python chatclient.py %s %d" % (initInfo.hostName, serverPort)
     print "\n Awaiting client connections \n"
 
     #### invariant:
@@ -186,18 +194,20 @@ def main(argv):
 
         messages = []
         for proc, pipe in pool.items():
-            if pipe.poll():
+            if pipe.poll(TIMEOUT):
                 msg = pipe.recv()
-                if msg: messages.append(msg)
+                if msg: messages.append((proc, msg))
 
-        log("Checked for messages msgsFromClients:%s\n"%str(messages))
+        if messages:
+            log("msgsFromClients:%s\n"%str(messages))
 
         if not messages: continue
         pool = {k:v for k,v in pool.items() if k.is_alive()}
         for proc, pipe in pool.items():
-            for msg in messages:
-                log("sending {%s} to {%s}\n"%(msg, proc))
-                pipe.send(msg)
+            for p, msg in messages:
+                if p != proc:
+                    log("sending {%s} to {%s}\n"%(msg, proc))
+                    pipe.send(msg)
 
         log("end of server process loop \n")
 
