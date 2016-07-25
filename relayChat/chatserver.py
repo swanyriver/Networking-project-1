@@ -101,11 +101,12 @@ def relayToClient(clientSocket, pipeToServer):
         msgFromClient = None
         try:
             msgFromClient = clientSocket.recv(REC_BUFFER)
-        except socket.errno as e:
-            log( "(PROCESS-STATE) unable to recieve from client\n" )
-            break
         except socket.timeout:
             pass
+        except socket.error as e:
+            log( "(PROCESS-STATE) unable to recieve from client\n" )
+            break
+
 
         if msgFromClient and len(msgFromClient) == 0:
             # other end has "hung up"
@@ -137,7 +138,7 @@ def relayToClient(clientSocket, pipeToServer):
             log("(PROCESS-STATE) message to send to clients: %s\n"%str(messageToClient))
 
             try:
-                clientSocket.sendall(messageToClient + '\n')
+                clientSocket.sendall(messageToClient)
             except socket.timeout:
                 log("(PROCESS STATE) send timedout\n")
             except socket.error as e:
@@ -198,20 +199,18 @@ def main(argv):
                 msg = pipe.recv()
                 if msg: messages.append((proc, msg))
 
-        if messages:
-            log("msgsFromClients:%s\n"%str(messages))
+        if not messages:
+            continue
 
-        if not messages: continue
+        log("msgsFromClients:%s\n" % str(messages))
+        print "\n".join(msg[1] for msg in messages)
+
         pool = {k:v for k,v in pool.items() if k.is_alive()}
         for proc, pipe in pool.items():
             for p, msg in messages:
                 if p != proc:
                     log("sending {%s} to {%s}\n"%(msg, proc))
                     pipe.send(msg)
-
-        log("end of server process loop \n")
-
-
 
 
 if __name__ == "__main__":
