@@ -6,7 +6,7 @@ MSG_LIMIT = 500
 MIN_PORT = 0
 PRIVILEGED = 1024
 MAX_PORT = 65536
-QUIT = "\quit"
+QUIT = "\\quit"
 
 
 def getInput(user):
@@ -33,9 +33,11 @@ def client_main(TCP_IP, TCP_PORT):
 
     msg = ""
 
-    while msg != QUIT:
+    while True:
 
         msg = getInput(handle)
+        if msg == QUIT:
+            break
         s.sendall("%s>%s"%(handle,msg))
 
         #get update from server

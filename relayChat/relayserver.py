@@ -80,16 +80,6 @@ def getListeningSocket(portNum, hostName, ipAddress):
     serverSocket.listen(CONNECTION_QUE_SIZE)
     return serverSocket
 
-def getInput():
-    inpt = raw_input("%s>"%HANDLE)
-    inpt = inpt.strip()
-    if len(inpt) > MSG_LIMIT:
-        inpt = inpt[:MSG_LIMIT]
-        print " <MESSAGE TRUNCATED TO %d CHARS>"%MSG_LIMIT
-    return inpt
-
-
-
 
 def relayToClient(clientSocket, pipeToServer):
     """
